@@ -3,96 +3,71 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 
-# ==========================================================
-# SALES INSIGHTS PIPELINE
-# Answers the following questions:
-# 1. What is total revenue?
-# 2. What is month-over-month growth?
-# 3. What is year-over-year growth?
-# 4. What is the most ordered time-window?
-# 5. What is customer lifetime value?
-# 6. What is customer churn rate?
-# 7. What is average order value?
-# 8. What is sales per region/category/product?
-# 9. Which products have declining sales?
-# 10. Product vs month evaluation: which product is ordered most?
-# ==========================================================
 
-# Create output folders
+
 Path("output/charts").mkdir(parents=True, exist_ok=True)
 Path("output/reports").mkdir(parents=True, exist_ok=True)
 
-# ==========================================================
-# LOAD DATASET
-# Excel file should contain columns:
-# Date, Order ID, Customer ID, Product, Category,
-# Region, Quantity, Price
-# ==========================================================
+
+
 print("Loading dataset...")
 df = pd.read_excel("S3-4_Capstone_Task_Pick_dataset_define_3_questions_set_up_skeleton_notebook (1).xlsx")
 
-# Clean column names
+
+
 df.columns = df.columns.str.strip()
 
-# Convert Date column to datetime
+
+
 df["Date"] = pd.to_datetime(df["Date"])
 
-# Create calculated columns
+
 df["Revenue"] = df["Quantity"] * df["Price"]
 df["Month"] = df["Date"].dt.to_period("M").astype(str)
 df["Year"] = df["Date"].dt.year
 def format_currency(series):
     return series.apply(lambda x: f"Rs {x:,.2f}")
 
-# Sort by date for proper time-series analysis
+
+
 df = df.sort_values("Date")
 
 print("\n========== SALES INSIGHTS ==========")
 
-# ==========================================================
-# 1. TOTAL REVENUE
-# ==========================================================
+
 total_revenue = df["Revenue"].sum()
 print(f"\n1. Total Revenue: Rs {total_revenue:,.2f}")
 
-# ==========================================================
-# 2. AVERAGE ORDER VALUE
-# ==========================================================
-# Average revenue per unique order
+
+
 order_revenue = df.groupby("Order ID")["Revenue"].sum()
 average_order_value = order_revenue.mean()
 print(f"\n2. Average Order Value: Rs {average_order_value:,.2f}")
 
-# ==========================================================
-# 3. MONTH-OVER-MONTH GROWTH
-# ==========================================================
+
+
 monthly_sales = df.groupby("Month")["Revenue"].sum().sort_index()
 mom_growth = (monthly_sales.pct_change() * 100).fillna(0)
 
 print("\n3. Month-over-Month Growth (%):")
 print(mom_growth.round(2))
 
-# ==========================================================
-# 4. YEAR-OVER-YEAR GROWTH
-# ==========================================================
+
+
 yearly_sales = df.groupby("Year")["Revenue"].sum().sort_index()
 yoy_growth = (yearly_sales.pct_change() * 100).fillna(0)
 
 print("\n4. Year-over-Year Growth (%):")
 print(yoy_growth.round(2))
 
-# ==========================================================
-# 5. MOST ORDERED TIME-WINDOW
-# ==========================================================
-# Month with the highest number of orders
+
 orders_per_month = df.groupby("Month")["Order ID"].nunique()
 most_ordered_time_window = orders_per_month.idxmax()
 
 print(f"\n5. Most Ordered Time Window: {most_ordered_time_window}")
 
-# ==========================================================
-# 6. CUSTOMER LIFETIME VALUE (CLV)
-# ==========================================================
+
+
 customer_lifetime_value = (
     df.groupby("Customer ID")["Revenue"]
     .sum()
@@ -102,10 +77,8 @@ customer_lifetime_value = (
 print("\n6. Customer Lifetime Value (Top 10 Customers):")
 print(format_currency(customer_lifetime_value.head(10)))
 
-# ==========================================================
-# 7. CUSTOMER CHURN RATE
-# ==========================================================
-# Customers who purchased in the last 30 days are considered active
+
+
 latest_date = df["Date"].max()
 cutoff_date = latest_date - pd.Timedelta(days=30)
 
@@ -118,9 +91,8 @@ churn_rate = ((total_customers - active_customers) / total_customers) * 100
 
 print(f"\n7. Customer Churn Rate: {churn_rate:.2f}%")
 
-# ==========================================================
-# 8. SALES PER REGION
-# ==========================================================
+
+
 region_sales = (
     df.groupby("Region")["Revenue"]
     .sum()
@@ -129,9 +101,8 @@ region_sales = (
 print("\n8. Sales per Region:")
 print(format_currency(region_sales))
 
-# ==========================================================
-# 9. SALES PER CATEGORY
-# ==========================================================
+
+
 category_sales = (
     df.groupby("Category")["Revenue"]
     .sum()
@@ -140,9 +111,8 @@ category_sales = (
 
 print("\n9. Sales per Category:")
 print(format_currency(category_sales))
-# ==========================================================
-# 10. SALES PER PRODUCT
-# ==========================================================
+
+
 product_sales = (
     df.groupby("Product")["Revenue"]
     .sum()
@@ -152,10 +122,8 @@ product_sales = (
 print("\n10. Sales per Product:")
 print(format_currency(product_sales))
 
-# ==========================================================
-# 11. PRODUCTS WITH DECLINING SALES
-# ==========================================================
-# Compare first month sales vs last month sales
+
+
 product_month_sales = (
     df.groupby(["Month", "Product"])["Revenue"]
     .sum()
@@ -174,10 +142,8 @@ if declining_products.empty:
     print("No products with declining sales.")
 else:
     print(format_currency(declining_products).to_string())
-# ==========================================================
-# 12. PRODUCT VS MONTH EVALUATION
-# Which product is ordered the most each month?
-# ==========================================================
+
+
 product_vs_month = (
     df.groupby(["Month", "Product"])["Quantity"]
     .sum()
@@ -193,8 +159,8 @@ most_ordered_product_by_month = (
 
 print("\n12. Most Ordered Product by Month:")
 print(most_ordered_product_by_month.to_string(index=False))
-# Overall most ordered product
-# Overall most ordered product
+
+
 overall_most_ordered_product = (
     df.groupby("Product")["Quantity"]
     .sum()
@@ -209,9 +175,8 @@ top_products = overall_most_ordered_product[
 print("\nOverall Most Ordered Product(s):")
 for product, qty in top_products.items():
     print(f"{product} ({qty} units)")
-# ==========================================================
-# SAVE REPORTS
-# ==========================================================
+
+
 print("\nSaving reports...")
 
 monthly_sales.to_csv("output/reports/monthly_sales.csv")
@@ -228,7 +193,7 @@ most_ordered_product_by_month.to_csv(
     index=False
 )
 
-# Save all summaries into one Excel workbook
+
 with pd.ExcelWriter("output/reports/sales_insights_summary.xlsx") as writer:
     monthly_sales.to_excel(writer, sheet_name="Monthly Sales")
     mom_growth.to_excel(writer, sheet_name="MoM Growth")
@@ -245,9 +210,7 @@ with pd.ExcelWriter("output/reports/sales_insights_summary.xlsx") as writer:
         index=False
     )
 
-# ==========================================================
-# VISUALIZATIONS
-# ==========================================================
+
 print("Generating charts...")
 sns.set_style("whitegrid")
 
